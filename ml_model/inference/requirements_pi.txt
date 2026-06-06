@@ -1,0 +1,12 @@
+# requirements_pi.txt — install on the Raspberry Pi 4 only
+# Used by: inference_onnx.py
+#
+# pip install -r requirements_pi.txt
+#
+# NOTE: do NOT install onnxruntime-gpu — it does not exist for ARM and will fail.
+# NOTE: torch and torchvision are NOT needed on the Pi for the ONNX inference path.
+
+onnxruntime
+opencv-python
+pandas
+tqdm

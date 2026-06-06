@@ -1,0 +1,10 @@
+# requirements_pc.txt — install on your PC/laptop only
+# Used by: export_to_onnx.py
+#
+# pip install -r requirements_pc.txt
+
+torch
+torchvision
+onnx
+onnxruntime
+onnxruntime-tools
