@@ -228,8 +228,8 @@ npx react-native run-ios
 
 1. **Home** → tap **Start**.
 2. **Details** — enter participant name, age, sex.
-3. **Config** — pick eye (Left / Right), color, iterations, duration,
-   delay, intensity. Tap **Start Experiment**.
+3. **Config** — choose Dual, Left → Right, or Right → Left and configure
+   the mode-specific flash schedule. Tap **Start Experiment**.
    - The phone POSTs the config to `http://<pi>:5000/session`.
    - The Pi runs the flash sequence while recording IR video.
 4. **Experiment** — looping background while the app polls `/status`.

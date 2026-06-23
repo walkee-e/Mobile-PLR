@@ -48,12 +48,9 @@ export function ResultsScreen({route}) {
         name: experimentData.name,
         age: experimentData.age,
         sex: experimentData.sex,
-        eye: experimentData.eye,
-        color: experimentData.color,
-        iterations: experimentData.iterations,
-        duration: experimentData.duration,
-        delay: experimentData.delay,
-        intensity: experimentData.intensity,
+        controlMode: experimentData.controlMode,
+        modeLabel: experimentData.modeLabel,
+        schedule: experimentData.schedule,
         time: new Date().toISOString(),
       },
       summary,
@@ -76,12 +73,27 @@ export function ResultsScreen({route}) {
 
       <Text style={styles.line}>Name: {experimentData.name}</Text>
       <Text style={styles.line}>Age: {experimentData.age}</Text>
-      <Text style={styles.line}>Eye: {experimentData.eye}</Text>
-      <Text style={styles.line}>Color: {experimentData.color}</Text>
-      <Text style={styles.line}>Iterations: {experimentData.iterations}</Text>
-      <Text style={styles.line}>Duration: {experimentData.duration}s</Text>
-      <Text style={styles.line}>Delay: {experimentData.delay}s</Text>
-      <Text style={styles.line}>Intensity: {experimentData.intensity}%</Text>
+      <Text style={styles.line}>
+        Control mode: {experimentData.modeLabel || experimentData.controlMode}
+      </Text>
+      {experimentData.controlMode === 'dual' ? (
+        <Text style={styles.line}>
+          Flashes: {experimentData.schedule?.flashes?.length || 0} · Break:{' '}
+          {experimentData.schedule?.gap}s
+        </Text>
+      ) : (
+        <>
+          <Text style={styles.line}>
+            Rounds: {experimentData.schedule?.rounds} · Color:{' '}
+            {experimentData.schedule?.color}
+          </Text>
+          <Text style={styles.line}>
+            Duration: {experimentData.schedule?.duration}s · Eye pause:{' '}
+            {experimentData.schedule?.innerPause}s · Round break:{' '}
+            {experimentData.schedule?.gap}s
+          </Text>
+        </>
+      )}
 
       <Text style={styles.note}>
         Initial formulas: median smoothed pre-flash baseline; minimum smoothed

@@ -74,12 +74,8 @@ Falls back to a mock file on dev machines without picamera2.
 ```json
 {
   "participant": {"name":"...", "age":30, "sex":"M"},
-  "eye":        "Left" | "Right" | "Both",
-  "color":      "Red"  | "Green" | "Blue" | "Yellow" | "White" | "All",
-  "iterations": 3,
-  "duration":   1.0,
-  "delay":      1.0,
-  "intensity":  80
+  "controlMode": "dual" | "left_to_right" | "right_to_left",
+  "schedule": {}
 }
 ```
 
@@ -87,13 +83,42 @@ Translation rules (`config_adapter.py`):
 
 | Mobile field | Backend mapping |
 |---|---|
-| `eye = Left`  | `mode = left_to_right`, `active_led = 1` (LED2 skipped) |
-| `eye = Right` | `mode = right_to_left`, `active_led = 2` (LED1 skipped) |
-| `eye = Both`  | `mode = dual` (both LEDs fire together) |
-| `color = All` | cycles R, G, B, Y, W across rounds |
-| `intensity`   | Retained for API compatibility; direct HIGH/LOW controller ignores it |
-| `duration` s  | flash on-time in ms |
-| `delay` s     | gap between flashes / rounds; minimum 3 seconds for analysis |
+| `controlMode = dual` | Both LEDs flash simultaneously; `schedule.flashes` carries each RGB hex and duration |
+| `controlMode = left_to_right` | LED 1, inner pause, LED 2 for each round |
+| `controlMode = right_to_left` | LED 2, inner pause, LED 1 for each round |
+| `schedule.gap` | Break between flashes/rounds; minimum 3 seconds for analysis |
+| `schedule.innerPause` | Pause between eyes in sequential modes |
+
+Dual schedule example:
+
+```json
+{
+  "controlMode": "dual",
+  "schedule": {
+    "flashes": [
+      {"hex": "#FF0000", "duration": 1.0},
+      {"hex": "#00FF00", "duration": 1.0},
+      {"hex": "#0000FF", "duration": 1.0}
+    ],
+    "gap": 3
+  }
+}
+```
+
+Sequential schedule example:
+
+```json
+{
+  "controlMode": "left_to_right",
+  "schedule": {
+    "rounds": 3,
+    "hex": "#FFFFFF",
+    "duration": 1.0,
+    "innerPause": 1.0,
+    "gap": 3
+  }
+}
+```
 
 ## Mobile — set the Pi address
 

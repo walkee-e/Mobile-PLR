@@ -15,6 +15,13 @@ python -m unittest discover -s backend/tests -p "test_*.py"
 ```
 
 These tests verify the initial PLR formulas and JSON-ready time-series output.
+They also verify all three terminal control modes, including the default three
+dual flashes, optional additional flashes, default three sequential rounds,
+and Left→Right / Right→Left execution order.
+
+The backend contract tests also verify that the mobile `controlMode` payload
+creates equivalent Dual, Left→Right, and Right→Left schedules without the
+legacy single-eye `active_led` behavior.
 
 ## 2. Video integration test
 

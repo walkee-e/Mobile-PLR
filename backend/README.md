@@ -147,6 +147,23 @@ cd plr_system/
 python3 main.py
 ```
 
+### Terminal control modes
+
+The terminal wizard always offers these three hardware-control modes:
+
+1. **Dual** — both LEDs flash simultaneously with the same color. Three
+   flashes are collected by default; each flash has its own RGB hex color and
+   duration. More flashes may be added, followed by one configurable
+   all-LEDs-off gap between flashes.
+2. **Left → Right** — LED 1 flashes, the configured inner pause elapses, then
+   LED 2 flashes. The default is three rounds, and the wizard allows changing
+   the round count, color, flash duration, inner pause, and gap between rounds.
+3. **Right → Left** — the same sequential schedule in reverse: LED 2, inner
+   pause, then LED 1.
+
+The mobile API's optional `active_led` field is not emitted by the terminal
+wizard, so both LEDs always participate in either terminal sequential mode.
+
 ### What you will see
 
 ```

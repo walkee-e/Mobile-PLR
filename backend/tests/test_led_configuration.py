@@ -73,6 +73,66 @@ class LedConfigurationTests(unittest.TestCase):
         self.assertFalse(config["led1_common_anode"])
         self.assertTrue(config["led2_common_anode"])
 
+    def test_mobile_dual_control_mode_builds_individual_flashes(self):
+        config = adapt({
+            "participant": {"name": "Test"},
+            "controlMode": "dual",
+            "schedule": {
+                "flashes": [
+                    {"hex": "#FF0000", "duration": 0.5},
+                    {"hex": "#00FF00", "duration": 1.25},
+                    {"hex": "#0000FF", "duration": 2},
+                    {"hex": "#FFFFFF", "duration": 0.1},
+                ],
+                "gap": 4,
+            },
+        })
+        self.assertEqual(config["mode"], "dual")
+        self.assertEqual(
+            [(flash["hex"], flash["duration_ms"]) for flash in config["schedule"]["flashes"]],
+            [
+                ("#FF0000", 500),
+                ("#00FF00", 1250),
+                ("#0000FF", 2000),
+                ("#FFFFFF", 100),
+            ],
+        )
+        self.assertEqual(config["schedule"]["gap_ms"], 4000)
+
+    def test_mobile_left_to_right_control_mode_flashes_both_eyes(self):
+        config = adapt({
+            "controlMode": "left_to_right",
+            "schedule": {
+                "rounds": 5,
+                "hex": "#FFFF00",
+                "duration": 0.3,
+                "innerPause": 0.5,
+                "gap": 3,
+            },
+        })
+        self.assertEqual(config["mode"], "left_to_right")
+        self.assertEqual(config["schedule"]["rounds"], 5)
+        self.assertEqual(config["schedule"]["duration_ms"], 300)
+        self.assertEqual(config["schedule"]["inner_pause_ms"], 500)
+        self.assertNotIn("active_led", config["schedule"])
+
+    def test_mobile_right_to_left_control_mode_flashes_both_eyes(self):
+        config = adapt({
+            "controlMode": "right_to_left",
+            "schedule": {
+                "rounds": 3,
+                "hex": "#FF00FF",
+                "duration": 1,
+                "innerPause": 2,
+                "gap": 5,
+            },
+        })
+        self.assertEqual(config["mode"], "right_to_left")
+        self.assertEqual(config["schedule"]["hex"], "#FF00FF")
+        self.assertEqual(config["schedule"]["inner_pause_ms"], 2000)
+        self.assertEqual(config["schedule"]["gap_ms"], 5000)
+        self.assertNotIn("active_led", config["schedule"])
+
 
 if __name__ == "__main__":
     unittest.main()

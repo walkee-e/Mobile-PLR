@@ -7,6 +7,18 @@ backend config dict expected by Orchestrator + LedController.
 Mobile request shape (JSON from ConfigScreen):
     {
         "participant": { "name": str, "age": int, "sex": str },
+        "controlMode": "dual" | "left_to_right" | "right_to_left",
+        "schedule": {
+            # dual
+            "flashes": [{"hex": "#RRGGBB", "duration": seconds}, ...],
+            "gap": seconds
+              OR
+            # sequential
+            "rounds": int, "hex": "#RRGGBB", "duration": seconds,
+            "innerPause": seconds, "gap": seconds
+        },
+
+        # Legacy single-eye payload remains accepted:
         "eye":         "Left" | "Right" | "Both",
         "color":       "Red" | "Green" | "Blue" | "Yellow" | "White" | "All",
         "iterations":  int,     # number of flashes per color
@@ -48,22 +60,17 @@ ALL_COLORS = ["Red", "Green", "Blue", "Yellow", "White"]
 
 
 def adapt(payload: dict) -> dict:
-    eye        = payload.get("eye", "Left")
-    color      = payload.get("color", "White")
-    iterations = max(1, int(payload.get("iterations", 1)))
-    duration_s = float(payload.get("duration", 1.0))
-    delay_s    = float(payload.get("delay", 1.0))
-    intensity  = float(payload.get("intensity", 100.0))
+    explicit_mode = payload.get("controlMode") or payload.get("control_mode")
+    if explicit_mode is not None:
+        return _adapt_explicit_control_mode(payload, explicit_mode)
 
-    duration_ms = max(50, int(duration_s * 1000))
-    # Initial PLR analysis observes three seconds after each flash. Enforce a
-    # matching inter-flash gap so the next flash does not contaminate that window.
-    gap_ms      = max(3000, int(delay_s * 1000))
+    return _adapt_legacy_mobile_payload(payload)
 
-    # ── GPIO + wiring ────────────────────────────────────────────────────────
+
+def _hardware_config(payload: dict) -> dict:
+    """Return GPIO and wiring settings shared by both mobile contracts."""
     gpio_in = payload.get("gpio") or {}
     pins = {k: int(gpio_in.get(k, DEFAULT_PINS[k])) for k in DEFAULT_PINS}
-
     ca_in = payload.get("common_anode")
     if isinstance(ca_in, dict):
         wiring = {
@@ -77,6 +84,80 @@ def adapt(payload: dict) -> dict:
         }
     else:
         wiring = {"common_anode": bool(ca_in)}
+    return {**pins, **wiring}
+
+
+def _seconds_to_ms(value, minimum_ms=50):
+    return max(minimum_ms, int(float(value) * 1000))
+
+
+def _validated_hex(value):
+    text = str(value or "").upper()
+    if len(text) != 7 or not text.startswith("#"):
+        raise ValueError(f"invalid RGB hex color: {value!r}")
+    try:
+        int(text[1:], 16)
+    except ValueError as exc:
+        raise ValueError(f"invalid RGB hex color: {value!r}") from exc
+    return text
+
+
+def _adapt_explicit_control_mode(payload: dict, mode: str) -> dict:
+    if mode not in {"dual", "left_to_right", "right_to_left"}:
+        raise ValueError(f"unsupported controlMode: {mode!r}")
+
+    incoming = payload.get("schedule") or {}
+    intensity = float(payload.get("intensity", 100.0))
+
+    if mode == "dual":
+        incoming_flashes = incoming.get("flashes") or []
+        if not incoming_flashes:
+            raise ValueError("dual mode requires at least one flash")
+        flashes = [
+            {
+                "hex": _validated_hex(flash.get("hex")),
+                "duration_ms": _seconds_to_ms(flash.get("duration", 1.0)),
+                "intensity_pct": intensity,
+            }
+            for flash in incoming_flashes
+        ]
+        schedule = {
+            "flashes": flashes,
+            "gap_ms": _seconds_to_ms(incoming.get("gap", 3.0), minimum_ms=3000),
+        }
+    else:
+        schedule = {
+            "rounds": max(1, int(incoming.get("rounds", 3))),
+            "hex": _validated_hex(incoming.get("hex", "#FFFFFF")),
+            "duration_ms": _seconds_to_ms(incoming.get("duration", 1.0)),
+            "inner_pause_ms": _seconds_to_ms(incoming.get("innerPause", 1.0)),
+            "gap_ms": _seconds_to_ms(incoming.get("gap", 3.0), minimum_ms=3000),
+            "intensity_pct": intensity,
+        }
+
+    return {
+        **_hardware_config(payload),
+        "mode": mode,
+        "schedule": schedule,
+        "camera": {"output_dir": "recordings"},
+        "participant": payload.get("participant", {}),
+        "pre_roll_s": 1.0,
+        "post_roll_s": 3.0,
+    }
+
+
+def _adapt_legacy_mobile_payload(payload: dict) -> dict:
+    eye        = payload.get("eye", "Left")
+    color      = payload.get("color", "White")
+    iterations = max(1, int(payload.get("iterations", 1)))
+    duration_s = float(payload.get("duration", 1.0))
+    delay_s    = float(payload.get("delay", 1.0))
+    intensity  = float(payload.get("intensity", 100.0))
+
+    duration_ms = max(50, int(duration_s * 1000))
+    # Initial PLR analysis observes three seconds after each flash. Enforce a
+    # matching inter-flash gap so the next flash does not contaminate that window.
+    gap_ms      = max(3000, int(delay_s * 1000))
 
     # ── Mode ─────────────────────────────────────────────────────────────────
     if eye == "Both":
@@ -119,8 +200,7 @@ def adapt(payload: dict) -> dict:
         }
 
     return {
-        **pins,
-        **wiring,
+        **_hardware_config(payload),
         "mode":     mode,
         "schedule": schedule,
         "camera":   {"output_dir": "recordings"},

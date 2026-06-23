@@ -38,9 +38,7 @@ export async function startSession(payload) {
 }
 
 export async function getStatus() {
-  // /status may briefly be unavailable while the server is mid-shutdown
-  // (the Pi closes HTTP before running the model). Caller treats fetch
-  // errors as "HTTP closed → inference in progress".
+  // Transient LAN errors are retried by the experiment screen.
   const r = await fetch(`${PI_BASE_URL}/status`);
   if (!r.ok) throw new Error(`status ${r.status}`);
   return r.json();
